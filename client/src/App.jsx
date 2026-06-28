@@ -42,6 +42,8 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminChats from "./pages/admin/AdminChats";
 import AdminReports from "./pages/admin/AdminReports";
 
+import ApiDemo from "./pages/ApiDemo";
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -119,6 +121,8 @@ export default function App() {
                   <Route path="/admin/chats" element={<AdminChats />} />
                   <Route path="/admin/reports" element={<AdminReports />} />
                 </Route>
+
+                <Route path="/api-demo" element={<ApiDemo />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
