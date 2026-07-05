@@ -1,0 +1,68 @@
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: [true, "Name is required"], trim: true },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Enter a valid email address"],
+    },
+    phone: {
+      type: String,
+      required: [true, "Phone number is required"],
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters"],
+      select: false, // never returned in queries by default
+    },
+    role: {
+      type: String,
+      enum: ["farmer", "admin"],
+      default: "farmer",
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive", "suspended"],
+      default: "active",
+    },
+    location: { type: String, default: "" },
+    preferredLanguage: { type: String, default: "English" },
+    primaryCrops: { type: [String], default: [] },
+    farmSize: { type: String, default: "" },
+    joinedOn: {
+      type: String,
+      default: () => new Date().toISOString().split("T")[0],
+    },
+  },
+  { timestamps: true }
+);
+
+// Hash password before save
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Instance method — compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Remove password from any JSON output
+userSchema.methods.toSafeObject = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
+
+const User = mongoose.model("User", userSchema);
+export default User;
