@@ -22,19 +22,17 @@ export default function FAQAccordion({ items }) {
               <ChevronDown
                 className={cn(
                   "h-5 w-5 text-gray-400 shrink-0 transition-transform duration-300",
-                  isOpen && "rotate-180 text-primary-600",
+                  isOpen && "rotate-180 text-primary-600"
                 )}
               />
             </button>
             <div
               className={cn(
                 "overflow-hidden transition-all duration-300 ease-in-out",
-                isOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0",
+                isOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
               )}
             >
-              <p className="text-sm text-gray-600 dark:text-gray-400 pb-4 pr-8 leading-relaxed">
-                {item.answer}
-              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 pb-4 pr-8 leading-relaxed">{item.answer}</p>
             </div>
           </div>
         );

@@ -10,6 +10,10 @@ export const dashboardTitles = {
   "/weather": "Weather",
   "/voice-assistant": "Voice Assistant",
   "/analytics": "Analytics",
+  "/bookmarks": "Bookmarks",
+  "/notifications": "Notifications",
+  "/government-schemes": "Government Schemes",
+  "/component-showcase": "Component Showcase",
 };
 
 export const adminTitles = {

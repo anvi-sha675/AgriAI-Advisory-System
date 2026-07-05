@@ -1,5 +1,20 @@
 import { cn } from "../../utils/helpers";
 
+/**
+ * Button
+ * @typedef {Object} ButtonProps
+ * @property {React.ReactNode} children - Button label/content.
+ * @property {"primary"|"secondary"|"outline"|"ghost"|"accent"} [variant="primary"] - Visual style variant.
+ * @property {"sm"|"md"|"lg"} [size="md"] - Button size.
+ * @property {React.ComponentType} [icon] - Optional Lucide icon component rendered inside the button.
+ * @property {"left"|"right"} [iconPosition="left"] - Which side of the label the icon renders on.
+ * @property {boolean} [fullWidth=false] - If true, button stretches to 100% of its container width.
+ * @property {boolean} [isLoading=false] - If true, shows a spinner and disables the button.
+ * @property {string} [className] - Additional class names merged onto the button.
+ * @property {"button"|"submit"|"reset"} [type="button"] - Native button type attribute.
+ * @param {ButtonProps} props
+ */
+
 const variants = {
   primary: "btn-primary",
   secondary: "btn-secondary",
@@ -29,12 +44,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={cn(
-        variants[variant],
-        sizes[size],
-        fullWidth && "w-full",
-        className,
-      )}
+      className={cn(variants[variant], sizes[size], fullWidth && "w-full", className)}
       disabled={isLoading || props.disabled}
       {...props}
     >

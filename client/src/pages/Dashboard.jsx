@@ -13,46 +13,21 @@ import {
 } from "lucide-react";
 import StatsCard from "../components/feature/StatsCard";
 import WeatherCard from "../components/feature/WeatherCard";
-import { CardSkeleton } from "../components/ui/Loader";
+import { CardSkeleton } from "../components/ui/Skeleton";
 import { useAuth } from "../context/AuthContext";
 import { dashboardStats, recentActivities } from "../utils/mockData";
 import { getWeather } from "../services/aiService";
 
 const statIcons = [MessageCircle, ScanSearch, ScanSearch, History];
-const activityIcons = {
-  chat: MessageCircle,
-  disease: ScanSearch,
-  weather: CloudSun,
-  crop: Sprout,
-};
+const activityIcons = { chat: MessageCircle, disease: ScanSearch, weather: CloudSun, crop: Sprout };
 
 const quickActions = [
   { label: "Ask AgriAI", to: "/chat", icon: MessageCircle, accent: "primary" },
-  {
-    label: "Detect Disease",
-    to: "/disease-detection",
-    icon: ScanSearch,
-    accent: "secondary",
-  },
-  {
-    label: "Crop Recommendation",
-    to: "/crop-recommendation",
-    icon: Sprout,
-    accent: "accent",
-  },
-  {
-    label: "Soil Health",
-    to: "/soil-health",
-    icon: FlaskConical,
-    accent: "primary",
-  },
+  { label: "Detect Disease", to: "/disease-detection", icon: ScanSearch, accent: "secondary" },
+  { label: "Crop Recommendation", to: "/crop-recommendation", icon: Sprout, accent: "accent" },
+  { label: "Soil Health", to: "/soil-health", icon: FlaskConical, accent: "primary" },
   { label: "Weather", to: "/weather", icon: CloudSun, accent: "accent" },
-  {
-    label: "Voice Assistant",
-    to: "/voice-assistant",
-    icon: Mic,
-    accent: "secondary",
-  },
+  { label: "Voice Assistant", to: "/voice-assistant", icon: Mic, accent: "secondary" },
 ];
 
 export default function Dashboard() {
@@ -92,21 +67,14 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {dashboardStats.map((stat, i) => (
-          <StatsCard
-            key={stat.label}
-            icon={statIcons[i]}
-            {...stat}
-            accent={["primary", "secondary", "accent", "primary"][i]}
-          />
+          <StatsCard key={stat.label} icon={statIcons[i]} {...stat} accent={["primary", "secondary", "accent", "primary"][i]} />
         ))}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
         <div className="lg:col-span-2 card p-6">
-          <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100 mb-5">
-            Quick Actions
-          </h2>
+          <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100 mb-5">Quick Actions</h2>
           <div className="grid sm:grid-cols-3 gap-4">
             {quickActions.map((action) => (
               <Link
@@ -117,33 +85,22 @@ export default function Dashboard() {
                 <div className="h-11 w-11 rounded-xl bg-primary-50 dark:bg-primary-950/40 flex items-center justify-center">
                   <action.icon className="h-5 w-5 text-primary-700 dark:text-secondary-400" />
                 </div>
-                <span className="text-xs font-medium text-ink dark:text-gray-100">
-                  {action.label}
-                </span>
+                <span className="text-xs font-medium text-ink dark:text-gray-100">{action.label}</span>
               </Link>
             ))}
           </div>
         </div>
 
         {/* Weather */}
-        {loadingWeather ? (
-          <CardSkeleton />
-        ) : (
-          <WeatherCard weather={weather} compact />
-        )}
+        {loadingWeather ? <CardSkeleton /> : <WeatherCard weather={weather} compact />}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent Activities */}
         <div className="lg:col-span-2 card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100">
-              Recent Activities
-            </h2>
-            <Link
-              to="/history"
-              className="text-sm font-medium text-primary-700 dark:text-secondary-400 flex items-center gap-1 hover:gap-1.5 transition-all"
-            >
+            <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100">Recent Activities</h2>
+            <Link to="/history" className="text-sm font-medium text-primary-700 dark:text-secondary-400 flex items-center gap-1 hover:gap-1.5 transition-all">
               View all <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -151,17 +108,12 @@ export default function Dashboard() {
             {recentActivities.map((activity) => {
               const Icon = activityIcons[activity.type] || MessageCircle;
               return (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-800/60 last:border-none"
-                >
+                <div key={activity.id} className="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-800/60 last:border-none">
                   <div className="h-9 w-9 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center shrink-0">
                     <Icon className="h-4 w-4 text-primary-700 dark:text-secondary-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ink dark:text-gray-100 truncate">
-                      {activity.title}
-                    </p>
+                    <p className="text-sm text-ink dark:text-gray-100 truncate">{activity.title}</p>
                     <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                       <Clock className="h-3 w-3" /> {activity.time}
                     </p>
@@ -174,22 +126,13 @@ export default function Dashboard() {
 
         {/* Recent Recommendation */}
         <div className="card p-6">
-          <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100 mb-4">
-            Recent Recommendation
-          </h2>
+          <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100 mb-4">Recent Recommendation</h2>
           <div className="rounded-xl bg-secondary-50 dark:bg-secondary-950/30 p-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-secondary-700 dark:text-secondary-400">
-              Crop suggestion
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-secondary-700 dark:text-secondary-400">Crop suggestion</span>
             <p className="text-sm text-ink dark:text-gray-100 mt-2 leading-relaxed">
-              Based on your loamy soil and the upcoming Kharif season,{" "}
-              <strong>Soybean</strong> and <strong>Cotton</strong> show the
-              strongest fit for your field.
+              Based on your loamy soil and the upcoming Kharif season, <strong>Soybean</strong> and <strong>Cotton</strong> show the strongest fit for your field.
             </p>
-            <Link
-              to="/crop-recommendation"
-              className="text-sm font-medium text-primary-700 dark:text-secondary-400 flex items-center gap-1 mt-3 hover:gap-1.5 transition-all"
-            >
+            <Link to="/crop-recommendation" className="text-sm font-medium text-primary-700 dark:text-secondary-400 flex items-center gap-1 mt-3 hover:gap-1.5 transition-all">
               View details <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

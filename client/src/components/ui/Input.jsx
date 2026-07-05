@@ -1,5 +1,18 @@
 import { cn } from "../../utils/helpers";
 
+/**
+ * Input
+ * @typedef {Object} InputProps
+ * @property {string} [label] - Optional label text rendered above the field.
+ * @property {string} id - Element id, also used to associate the label and error message.
+ * @property {string} [error] - Validation error message. When set, renders red helper text and red border.
+ * @property {React.ComponentType} [icon] - Optional Lucide icon rendered inside the field, left-aligned.
+ * @property {string} [type="text"] - Native input type (text, email, password, number, etc.).
+ * @property {string} [className] - Additional class names merged onto the <input> element.
+ * @property {string} [containerClassName] - Additional class names merged onto the outer wrapper <div>.
+ * @param {InputProps} props
+ */
+
 export default function Input({
   label,
   id,
@@ -28,7 +41,7 @@ export default function Input({
             "input-field",
             Icon && "pl-10",
             error && "border-red-400 focus:border-red-500 focus:ring-red-100",
-            className,
+            className
           )}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}

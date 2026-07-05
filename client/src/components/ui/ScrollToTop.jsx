@@ -17,9 +17,7 @@ export default function ScrollToTop() {
       aria-label="Scroll to top"
       className={cn(
         "fixed bottom-6 left-6 z-40 h-11 w-11 rounded-full bg-primary-700 text-white shadow-lift flex items-center justify-center transition-all duration-300 hover:bg-primary-800",
-        visible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 pointer-events-none",
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       )}
     >
       <ArrowUp className="h-5 w-5" />

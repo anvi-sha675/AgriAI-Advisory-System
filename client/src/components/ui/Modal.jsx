@@ -2,13 +2,19 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../utils/helpers";
 
-export default function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-  size = "md",
-}) {
+/**
+ * Modal
+ *
+ * @typedef {Object} ModalProps
+ * @property {boolean} isOpen - Whether the modal is currently visible.
+ * @property {() => void} onClose - Called when the modal should close (Escape, backdrop click, or close button).
+ * @property {React.ReactNode} title - Title text rendered in the modal header.
+ * @property {React.ReactNode} children - Modal body content.
+ * @property {"sm"|"md"|"lg"} [size="md"] - Controls the modal's max-width.
+ * @param {ModalProps} props
+ */
+
+export default function Modal({ isOpen, onClose, title, children, size = "md" }) {
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -39,16 +45,10 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={cn(
-          "relative w-full bg-white dark:bg-gray-900 rounded-2xl shadow-lift p-6 animate-growIn",
-          sizes[size],
-        )}
+        className={cn("relative w-full bg-white dark:bg-gray-900 rounded-2xl shadow-lift p-6 animate-growIn", sizes[size])}
       >
         <div className="flex items-start justify-between mb-4">
-          <h3
-            id="modal-title"
-            className="text-lg font-semibold text-ink dark:text-gray-100"
-          >
+          <h3 id="modal-title" className="text-lg font-semibold text-ink dark:text-gray-100">
             {title}
           </h3>
           <button

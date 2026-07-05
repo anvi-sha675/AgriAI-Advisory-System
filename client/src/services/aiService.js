@@ -1,19 +1,47 @@
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const TOKEN_KEY = "agriai-token";
 
-const SAMPLE_RESPONSES = [
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const authHeaders = (isForm = false) => {
+  const h = {};
+  if (!isForm) h["Content-Type"] = "application/json";
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) h["Authorization"] = `Bearer ${token}`;
+  return h;
+};
+
+async function apiFetch(path, options = {}) {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: { ...authHeaders(options.isForm), ...options.extraHeaders },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Request failed");
+    return data.data;
+  } catch (err) {
+    if (err.message === "Failed to fetch" || err.name === "TypeError") {
+      return null; // offline — caller uses fallback
+    }
+    throw err;
+  }
+}
+
+
+const MOCK_RESPONSES = [
   {
-    keywords: ["yellow", "wheat", "leaves"],
+    keywords: ["yellow", "wheat"],
     reply:
-      "Yellowing wheat leaves usually point to nitrogen deficiency or early-stage rust. Check the lower leaves first — uniform yellowing from the base suggests nitrogen shortage, while orange-yellow pustules indicate rust.",
+      "Yellowing wheat leaves usually point to nitrogen deficiency or early-stage rust. Check the lower leaves first.",
     causes: [
       "Nitrogen deficiency",
       "Yellow rust (Puccinia striiformis)",
       "Waterlogging at the root zone",
     ],
     treatment: [
-      "Apply a split dose of urea (40–50 kg/acre) if nitrogen deficiency is confirmed",
-      "Spray Propiconazole 25% EC at 0.1% concentration if rust pustules are visible",
-      "Improve field drainage to prevent waterlogging",
+      "Apply urea (40–50 kg/acre) if nitrogen deficiency is confirmed",
+      "Spray Propiconazole 25% EC at 0.1% if rust pustules are visible",
     ],
     prevention: [
       "Use rust-resistant wheat varieties",
@@ -22,41 +50,45 @@ const SAMPLE_RESPONSES = [
     ],
   },
   {
-    keywords: ["tomato", "white", "spots"],
+    keywords: ["white", "spot", "tomato"],
     reply:
-      "White spots on tomato leaves are commonly caused by powdery mildew or early blight. The pattern and texture of the spots help tell them apart.",
+      "White spots on tomato leaves are commonly caused by powdery mildew or early blight.",
     causes: [
       "Powdery mildew (fungal)",
       "Septoria leaf spot",
-      "Nutrient deficiency (magnesium)",
+      "Magnesium deficiency",
     ],
     treatment: [
-      "Spray wettable sulfur (2g/litre water) for powdery mildew",
+      "Spray wettable sulfur (2g/litre water)",
       "Remove and destroy severely affected leaves",
-      "Apply Mancozeb 75% WP at 2g/litre for fungal spread",
+      "Apply Mancozeb 75% WP at 2g/litre",
     ],
     prevention: [
-      "Maintain spacing for airflow between plants",
+      "Maintain spacing for airflow",
       "Avoid overhead irrigation in the evening",
       "Rotate crops each season",
     ],
   },
   {
-    keywords: ["monsoon", "crop", "season"],
+    keywords: ["fungal", "disease", "prevent"],
     reply:
-      "For the monsoon (Kharif) season, the safest high-yield choices depend on your soil and rainfall pattern, but a few crops perform reliably across most regions.",
+      "Preventive fungicide spraying before the rainy season is the most effective approach, combined with good field hygiene.",
     causes: [],
-    treatment: ["Rice", "Maize", "Soybean", "Cotton", "Pigeon pea (Arhar)"],
+    treatment: [
+      "Apply copper-based fungicide as preventive spray before monsoon",
+      "Remove crop debris and weeds that harbor fungal spores",
+    ],
     prevention: [
-      "Ensure field bunding to manage excess water",
-      "Choose short-duration varieties in heavy-rainfall zones",
+      "Rotate crops each season",
+      "Use certified disease-free seeds",
+      "Ensure proper field drainage",
     ],
   },
 ];
 
 const FALLBACK_RESPONSE = {
   reply:
-    "Thanks for sharing the details. Based on common patterns for this issue, here's a general assessment — for a precise diagnosis, a clear photo of the affected part would help a lot.",
+    "Based on what you've described, I recommend carefully observing the affected plants and checking for patterns. For a precise diagnosis, use the Disease Detection feature to upload a photo.",
   causes: [
     "Possible fungal or bacterial infection",
     "Nutrient imbalance",
@@ -64,32 +96,68 @@ const FALLBACK_RESPONSE = {
   ],
   treatment: [
     "Isolate affected plants if possible",
-    "Apply a broad-spectrum fungicide as a precaution",
-    "Monitor for 3–4 days and re-check",
+    "Apply broad-spectrum fungicide as precaution",
   ],
-  prevention: [
-    "Maintain field hygiene",
-    "Rotate crops seasonally",
-    "Test soil every season",
-  ],
+  prevention: ["Maintain field hygiene", "Rotate crops seasonally"],
 };
 
-export async function sendChatMessage(message) {
-  await delay(900 + Math.random() * 600);
+
+export async function sendChatMessage(message, chatId = null) {
+  const data = await apiFetch("/chat", {
+    method: "POST",
+    body: JSON.stringify({ message, chatId }),
+  });
+
+  if (data) {
+    return {
+      id: data.message.id,
+      role: "assistant",
+      timestamp: data.message.timestamp,
+      reply: data.message.reply || data.message.content,
+      causes: data.message.causes || [],
+      treatment: data.message.treatment || [],
+      prevention: data.message.prevention || [],
+      chatId: data.chatId,
+    };
+  }
+
+  // Fallback
+  await delay(900);
   const lower = message.toLowerCase();
-  const match = SAMPLE_RESPONSES.find((r) =>
+  const match = MOCK_RESPONSES.find((r) =>
     r.keywords.some((k) => lower.includes(k)),
   );
-  const data = match || FALLBACK_RESPONSE;
   return {
-    id: `msg_${Date.now()}`,
+    id: `mock_${Date.now()}`,
     role: "assistant",
     timestamp: new Date().toISOString(),
-    ...data,
+    ...(match || FALLBACK_RESPONSE),
   };
 }
 
-export async function detectCropDisease(_imageFile) {
+export async function detectCropDisease(imageFile) {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
+  const data = await apiFetch("/disease-detection", {
+    method: "POST",
+    body: formData,
+    isForm: true,
+  });
+
+  if (data) {
+    return {
+      id: `disease_${data.id || Date.now()}`,
+      disease: data.disease,
+      confidence: data.confidence,
+      crop: data.crop,
+      severity: data.severity,
+      causes: data.causes || [],
+      remedies: data.remedies || [],
+    };
+  }
+
+  // Fallback
   await delay(1800);
   const results = [
     {
@@ -119,15 +187,22 @@ export async function detectCropDisease(_imageFile) {
 }
 
 export async function getCropRecommendation({ soilType, season, location }) {
+  const data = await apiFetch("/crop-recommendation", {
+    method: "POST",
+    body: JSON.stringify({ soilType, season, location }),
+  });
+
+  if (data) return data;
+
   await delay(1100);
-  const cropBank = {
+  const cropMap = {
     Loamy: ["Wheat", "Sugarcane", "Cotton"],
     Sandy: ["Groundnut", "Bajra", "Watermelon"],
     Clayey: ["Rice", "Jute", "Pulses"],
     Black: ["Cotton", "Soybean", "Sunflower"],
     Red: ["Maize", "Millets", "Pulses"],
   };
-  const crops = cropBank[soilType] || cropBank.Loamy;
+  const crops = cropMap[soilType] || cropMap.Loamy;
   return {
     soilType,
     season,
@@ -145,22 +220,28 @@ export async function getCropRecommendation({ soilType, season, location }) {
 export async function getSoilHealthAdvisory({
   ph,
   nitrogen,
-  phosphorus: _phosphorus,
-  potassium: _potassium,
+  phosphorus,
+  potassium,
 }) {
+  const data = await apiFetch("/soil-health", {
+    method: "POST",
+    body: JSON.stringify({
+      ph: parseFloat(ph),
+      nitrogen: parseFloat(nitrogen),
+      phosphorus: parseFloat(phosphorus),
+      potassium: parseFloat(potassium),
+    }),
+  });
+
+  if (data) return data;
+
   await delay(1100);
   const phNum = parseFloat(ph);
-  let condition = "Balanced";
-  if (phNum < 6) condition = "Acidic";
-  else if (phNum > 7.5) condition = "Alkaline";
-
+  const condition =
+    phNum < 6 ? "Acidic" : phNum > 7.5 ? "Alkaline" : "Balanced";
   return {
     condition,
-    summary: `Soil pH of ${ph} indicates ${condition.toLowerCase()} conditions. Nutrient levels suggest ${
-      nitrogen < 50
-        ? "a nitrogen boost is needed"
-        : "nitrogen levels are adequate"
-    }.`,
+    summary: `Soil pH of ${ph} indicates ${condition.toLowerCase()} conditions. Nutrient levels suggest ${nitrogen < 50 ? "a nitrogen boost is needed" : "nitrogen levels are adequate"}.`,
     fertilizers:
       condition === "Acidic"
         ? [
@@ -189,6 +270,11 @@ export async function getSoilHealthAdvisory({
 }
 
 export async function getWeather(_location) {
+  const query = _location ? `?location=${encodeURIComponent(_location)}` : "";
+  const data = await apiFetch(`/weather${query}`);
+
+  if (data) return data;
+
   await delay(700);
   return {
     location: "Nashik, Maharashtra",
@@ -209,8 +295,7 @@ export async function getWeather(_location) {
     alerts: [
       {
         type: "warning",
-        message:
-          "Heavy rainfall expected Wednesday — delay pesticide spraying.",
+        message: "Heavy rainfall expected mid-week — delay pesticide spraying.",
       },
     ],
   };
@@ -224,4 +309,38 @@ export async function transcribeVoice(_audioBlob) {
     "Best time to sow mustard this season?",
   ];
   return samples[Math.floor(Math.random() * samples.length)];
+}
+
+export async function fetchChatHistory() {
+  const data = await apiFetch("/chat");
+  return data?.items || null;
+}
+
+export async function fetchNotifications() {
+  return await apiFetch("/notifications");
+}
+
+export async function markAllNotificationsRead() {
+  return await apiFetch("/notifications/mark-all-read", { method: "PATCH" });
+}
+
+export async function markNotificationRead(id) {
+  return await apiFetch(`/notifications/${id}/read`, { method: "PATCH" });
+}
+
+export async function fetchSchemes(search = "") {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  const data = await apiFetch(`/schemes${query}`);
+  return data?.schemes || null;
+}
+
+export async function addBookmarkToBackend(item) {
+  return await apiFetch("/bookmarks", {
+    method: "POST",
+    body: JSON.stringify(item),
+  });
+}
+
+export async function removeBookmarkFromBackend(id) {
+  return await apiFetch(`/bookmarks/${id}`, { method: "DELETE" });
 }
