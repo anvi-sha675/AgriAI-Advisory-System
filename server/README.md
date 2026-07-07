@@ -552,6 +552,101 @@ Suspended accounts receive `403 Forbidden` on every request.
 
 ---
 
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+
+    USERS ||--o{ CHATS : has
+    CHATS ||--o{ MESSAGES : contains
+    USERS ||--o{ BOOKMARKS : saves
+    USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ DISEASE_RESULTS : owns
+
+    USERS {
+        ObjectId _id PK
+        string name
+        string email
+        string phone
+        string password
+        string role
+        string status
+        string location
+        string preferredLanguage
+        string primaryCrops
+        string farmSize
+        string joinedOn
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CHATS {
+        ObjectId _id PK
+        ObjectId userId FK
+        string title
+        array messages
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    MESSAGES {
+        ObjectId _id PK
+        ObjectId chatId FK
+        string role
+        string content
+        string reply
+        array causes
+        array treatment
+        array prevention
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    BOOKMARKS {
+        ObjectId _id PK
+        ObjectId userId FK
+        string type
+        string title
+        string summary
+        array tags
+        string sourcePath
+        string sourceId
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    NOTIFICATIONS {
+        ObjectId _id PK
+        ObjectId userId FK
+        string type
+        string title
+        string message
+        boolean read
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    DISEASE_RESULTS {
+        ObjectId _id PK
+        ObjectId userId FK
+        string disease
+        number confidence
+        string crop
+        string severity
+        array causes
+        array remedies
+        boolean analysedByAI
+        number imageSize
+        string imageMimeType
+        datetime createdAt
+        datetime updatedAt
+    }
+```
+
+The schema follows a one-to-many relationship from **Users** to **Chats**, **Bookmarks**, **Notifications**, and **Disease Results**. Chat messages are stored as embedded documents within each chat for efficient retrieval and improved conversation performance.
+
+---
+
 ## Deployment
 
 ### Environment for production
