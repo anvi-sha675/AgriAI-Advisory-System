@@ -1,6 +1,7 @@
 import { Chat } from "../models/index.js";
-import { sendAdvisoryMessage } from "../services/geminiService.js";
+// import { sendAdvisoryMessage } from "../services/geminiService.js";
 import { sendSuccess, sendError } from "../utils/response.js";
+import { sendAdvisoryMessage } from "../services/aiService.js";
 
 export const sendMessage = async (req, res, next) => {
   try {
@@ -15,7 +16,9 @@ export const sendMessage = async (req, res, next) => {
 
     // Build history for multi-turn context (last 10 messages max)
     const history = chat
-      ? chat.messages.slice(-10).map((m) => ({ role: m.role, content: m.content }))
+      ? chat.messages
+          .slice(-10)
+          .map((m) => ({ role: m.role, content: m.content }))
       : [];
 
     const aiResponse = await sendAdvisoryMessage(message.trim(), history);
@@ -31,9 +34,10 @@ export const sendMessage = async (req, res, next) => {
     };
 
     if (!chat) {
-      const title = message.trim().length > 60
-        ? message.trim().slice(0, 60) + "..."
-        : message.trim();
+      const title =
+        message.trim().length > 60
+          ? message.trim().slice(0, 60) + "..."
+          : message.trim();
       chat = await Chat.create({
         userId: req.user._id,
         title,
@@ -45,7 +49,12 @@ export const sendMessage = async (req, res, next) => {
     }
 
     const savedMsg = chat.messages[chat.messages.length - 1];
-    sendSuccess(res, { chatId: chat._id, message: savedMsg }, 200, "Response generated.");
+    sendSuccess(
+      res,
+      { chatId: chat._id, message: savedMsg },
+      200,
+      "Response generated.",
+    );
   } catch (err) {
     next(err);
   }
@@ -68,14 +77,22 @@ export const getChatHistory = async (req, res, next) => {
     const items = chats.map((c) => ({
       id: c._id,
       title: c.title,
-      preview: c.messages.find((m) => m.role === "assistant")?.content?.slice(0, 100) || "",
+      preview:
+        c.messages
+          .find((m) => m.role === "assistant")
+          ?.content?.slice(0, 100) || "",
       messageCount: c.messages.length,
       messages: c.messages,
       date: c.updatedAt,
       createdAt: c.createdAt,
     }));
 
-    sendSuccess(res, { items, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
+    sendSuccess(res, {
+      items,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (err) {
     next(err);
   }
@@ -83,7 +100,10 @@ export const getChatHistory = async (req, res, next) => {
 
 export const getChat = async (req, res, next) => {
   try {
-    const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+    const chat = await Chat.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
     if (!chat) return sendError(res, "Chat not found.", 404);
     sendSuccess(res, { chat });
   } catch (err) {
@@ -93,7 +113,10 @@ export const getChat = async (req, res, next) => {
 
 export const deleteChat = async (req, res, next) => {
   try {
-    const chat = await Chat.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    const chat = await Chat.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
     if (!chat) return sendError(res, "Chat not found.", 404);
     sendSuccess(res, null, 200, "Conversation deleted.");
   } catch (err) {
@@ -108,7 +131,7 @@ export const updateChatTitle = async (req, res, next) => {
     const chat = await Chat.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
       { title: title.trim() },
-      { new: true }
+      { new: true },
     );
     if (!chat) return sendError(res, "Chat not found.", 404);
     sendSuccess(res, { chat }, 200, "Title updated.");
