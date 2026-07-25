@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import passport from "./config/passport.js";
 import { config } from "../config/index.js";
 import { requestLogger } from "./middleware/logger.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
@@ -12,32 +13,73 @@ import chatRouter from "./routes/chat.js";
 import diseaseRouter from "./routes/disease.js";
 import adminRouter from "./routes/admin.js";
 import {
-  cropRouter, soilRouter, weatherRouter,
-  notificationRouter, bookmarkRouter, schemeRouter,
+  cropRouter,
+  soilRouter,
+  weatherRouter,
+  notificationRouter,
+  bookmarkRouter,
+  schemeRouter,
 } from "./routes/features.js";
 
 const app = express();
 
 app.use(helmet());
-app.use(cors({
-  origin: [config.cors.origin, "http://localhost:3000", "http://localhost:5173"],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      config.cors.origin,
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 
-app.use("/api/", rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests. Please try again later." },
-}));
-app.use("/api/auth/login",    rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }));
-app.use("/api/auth/register", rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }));
+app.use(
+  "/api/",
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      message: "Too many requests. Please try again later.",
+    },
+  }),
+);
+app.use(
+  "/api/auth/login",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      message: "Too many login attempts. Please try again in 15 minutes.",
+    },
+  }),
+);
+app.use(
+  "/api/auth/register",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      message: "Too many registration attempts. Please try again later.",
+    },
+  }),
+);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(passport.initialize());
 if (config.isDev) app.use(requestLogger);
 
 app.get("/api/health", (_req, res) => {
@@ -50,18 +92,18 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.use("/api/auth",               authRouter);
-app.use("/api/chat",               chatRouter);
-app.use("/api/disease-detection",  diseaseRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/chat", chatRouter);
+app.use("/api/disease-detection", diseaseRouter);
 app.use("/api/crop-recommendation", cropRouter);
-app.use("/api/soil-health",        soilRouter);
-app.use("/api/weather",            weatherRouter);
-app.use("/api/notifications",      notificationRouter);
-app.use("/api/bookmarks",          bookmarkRouter);
-app.use("/api/schemes",            schemeRouter);
-app.use("/api/admin",              adminRouter);
+app.use("/api/soil-health", soilRouter);
+app.use("/api/weather", weatherRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/bookmarks", bookmarkRouter);
+app.use("/api/schemes", schemeRouter);
+app.use("/api/admin", adminRouter);
 
-app.use(notFound);
+
 app.use(errorHandler);
 
 export default app;
