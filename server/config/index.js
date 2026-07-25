@@ -24,7 +24,7 @@ export const config = {
 
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || "",
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash-lite",
   },
 
   weather: {
@@ -34,6 +34,14 @@ export const config = {
 
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  },
+
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    callbackUrl:
+      process.env.GOOGLE_CALLBACK_URL ||
+      "http://localhost:5000/api/auth/google/callback",
   },
 
   rateLimit: {
