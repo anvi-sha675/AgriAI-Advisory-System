@@ -1,18 +1,30 @@
 import { config } from "../../config/index.js";
 
 const isConfigured = () =>
-  config.weather.apiKey && config.weather.apiKey !== "your_openweathermap_api_key_here";
+  config.weather.apiKey &&
+  config.weather.apiKey !== "your_openweathermap_api_key_here";
 
 function buildFarmingAlerts(current) {
   const alerts = [];
-  if (current.rain || (current.clouds?.all > 80)) {
-    alerts.push({ type: "warning", message: "High rainfall likelihood — delay pesticide and fertilizer spraying." });
+  if (current.rain || current.clouds?.all > 80) {
+    alerts.push({
+      type: "warning",
+      message:
+        "High rainfall likelihood — delay pesticide and fertilizer spraying.",
+    });
   }
   if (current.main?.temp > 40) {
-    alerts.push({ type: "warning", message: "Extreme heat — increase irrigation frequency, schedule work in early morning." });
+    alerts.push({
+      type: "warning",
+      message:
+        "Extreme heat — increase irrigation frequency, schedule work in early morning.",
+    });
   }
   if (current.wind?.speed > 10) {
-    alerts.push({ type: "info", message: "Strong winds — avoid spraying operations today." });
+    alerts.push({
+      type: "info",
+      message: "Strong winds — avoid spraying operations today.",
+    });
   }
   return alerts;
 }
@@ -20,15 +32,29 @@ function buildFarmingAlerts(current) {
 function fallbackWeather(location) {
   return {
     location: location || "Nashik, Maharashtra",
-    current: { temp: 29, condition: "Partly Cloudy", description: "partly cloudy", humidity: 64, windSpeed: 14, rainChance: 30, feelsLike: 31, visibility: 10 },
+    current: {
+      temp: 29,
+      condition: "Partly Cloudy",
+      description: "partly cloudy",
+      humidity: 64,
+      windSpeed: 14,
+      rainChance: 30,
+      feelsLike: 31,
+      visibility: 10,
+    },
     forecast: [
-      { day: "Today",     high: 31, low: 22, condition: "Partly Cloudy", rain: 30 },
-      { day: "Tomorrow",  high: 33, low: 23, condition: "Sunny",         rain: 5  },
-      { day: "Wed",       high: 28, low: 21, condition: "Rain",          rain: 80 },
-      { day: "Thu",       high: 27, low: 20, condition: "Rain",          rain: 70 },
-      { day: "Fri",       high: 30, low: 22, condition: "Sunny",         rain: 10 },
+      { day: "Today", high: 31, low: 22, condition: "Partly Cloudy", rain: 30 },
+      { day: "Tomorrow", high: 33, low: 23, condition: "Sunny", rain: 5 },
+      { day: "Wed", high: 28, low: 21, condition: "Rain", rain: 80 },
+      { day: "Thu", high: 27, low: 20, condition: "Rain", rain: 70 },
+      { day: "Fri", high: 30, low: 22, condition: "Sunny", rain: 10 },
     ],
-    alerts: [{ type: "warning", message: "Heavy rainfall expected mid-week — delay pesticide spraying." }],
+    alerts: [
+      {
+        type: "warning",
+        message: "Heavy rainfall expected mid-week — delay pesticide spraying.",
+      },
+    ],
     isFallback: true,
   };
 }
@@ -38,8 +64,12 @@ export async function getWeatherData(location = "Nashik,IN") {
 
   try {
     const [curRes, foreRes] = await Promise.all([
-      fetch(`${config.weather.baseUrl}/weather?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric`),
-      fetch(`${config.weather.baseUrl}/forecast?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric&cnt=5`),
+      fetch(
+        `${config.weather.baseUrl}/weather?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric`,
+      ),
+      fetch(
+        `${config.weather.baseUrl}/forecast?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric&cnt=5`,
+      ),
     ]);
 
     if (!curRes.ok) return fallbackWeather(location);
@@ -61,7 +91,9 @@ export async function getWeatherData(location = "Nashik,IN") {
       },
       forecast: fore
         ? fore.list.map((f) => ({
-            day: new Date(f.dt * 1000).toLocaleDateString("en-IN", { weekday: "short" }),
+            day: new Date(f.dt * 1000).toLocaleDateString("en-IN", {
+              weekday: "short",
+            }),
             high: Math.round(f.main.temp_max),
             low: Math.round(f.main.temp_min),
             condition: f.weather[0].main,
