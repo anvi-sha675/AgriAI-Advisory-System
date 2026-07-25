@@ -1,7 +1,6 @@
 import { Chat } from "../models/index.js";
-// import { sendAdvisoryMessage } from "../services/geminiService.js";
+import { sendAdvisoryMessage } from "../services/geminiService.js";
 import { sendSuccess, sendError } from "../utils/response.js";
-import { sendAdvisoryMessage } from "../services/aiService.js";
 
 export const sendMessage = async (req, res, next) => {
   try {

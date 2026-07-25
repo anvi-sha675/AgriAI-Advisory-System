@@ -58,11 +58,6 @@ export default function Chat() {
     setInput("");
     setIsTyping(true);
     const aiMsg = await sendChatMessage(content);
-
-    if (!aiMsg.id) {
-      aiMsg.id = `ai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    }
-
     setIsTyping(false);
     setMessages((prev) => [...prev, aiMsg]);
   };
@@ -215,15 +210,8 @@ export default function Chat() {
             </div>
           ) : (
             <>
-              {messages.map((msg, index) => (
-                <ChatBubble
-                  key={
-                    msg.id ||
-                    msg._id ||
-                    `${msg.role}-${index}-${msg.timestamp || "msg"}`
-                  }
-                  message={msg}
-                />
+              {messages.map((msg) => (
+                <ChatBubble key={msg.id} message={msg} />
               ))}
               {isTyping && <TypingIndicator />}
             </>
