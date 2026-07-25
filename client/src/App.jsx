@@ -14,6 +14,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import OAuthCallback from "./pages/auth/OAuthCallback";
 
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
@@ -69,6 +70,7 @@ export default function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/oauth-callback" element={<OAuthCallback />} />
                 </Route>
 
                 {/* Authenticated dashboard pages */}

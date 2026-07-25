@@ -15,6 +15,7 @@ import Button from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { cn } from "../../utils/helpers";
+import GoogleAuthButton from "../../components/GoogleAuthButton";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -78,7 +79,19 @@ export default function Register() {
         Join AgriAI and start getting instant farming guidance.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      <div className="mt-8">
+        <GoogleAuthButton label="Sign up with Google" />
+      </div>
+
+      <div className="flex items-center gap-3 my-6">
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          or sign up with email
+        </span>
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           id="fullName"
           label="Full name"

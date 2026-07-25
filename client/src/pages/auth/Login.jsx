@@ -5,6 +5,7 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import GoogleAuthButton from "../../components/GoogleAuthButton";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -50,7 +51,19 @@ export default function Login() {
         Log in to continue getting farming advice from AgriAI.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      <div className="mt-8">
+        <GoogleAuthButton label="Continue with Google" />
+      </div>
+
+      <div className="flex items-center gap-3 my-6">
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          or log in with email
+        </span>
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           id="email"
           label="Email address"
