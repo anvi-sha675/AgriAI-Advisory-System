@@ -14,14 +14,36 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Phone number is required",
+      ],
       trim: true,
+      default: "",
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Password is required",
+      ],
       minlength: [8, "Password must be at least 8 characters"],
       select: false, // never returned in queries by default
+    },
+    googleId: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
     },
     role: {
       type: String,
@@ -42,22 +64,20 @@ const userSchema = new mongoose.Schema(
       default: () => new Date().toISOString().split("T")[0],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Hash password before save
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Instance method — compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password from any JSON output
 userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
