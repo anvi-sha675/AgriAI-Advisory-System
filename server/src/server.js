@@ -7,23 +7,35 @@ async function start() {
   await connectDB();
 
   const server = app.listen(config.port, () => {
-    console.log("\nAgriAI Backend Server");
+    console.log("\n🌱  AgriAI Backend Server");
     console.log(`   Environment : ${config.nodeEnv}`);
     console.log(`   Port        : ${config.port}`);
     console.log(`   API Base    : http://localhost:${config.port}/api`);
     console.log(`   MongoDB     : ${config.mongo.uri}`);
 
-    if (!config.gemini.apiKey || config.gemini.apiKey === "your_gemini_api_key_here") {
-      console.log("\n⚠️  GEMINI_API_KEY not set — AI responses will use fallback data.");
+    if (
+      !config.gemini.apiKey ||
+      config.gemini.apiKey === "your_gemini_api_key_here"
+    ) {
+      console.log(
+        "\n⚠️  GEMINI_API_KEY not set — AI responses will use fallback data.",
+      );
       console.log("   Get a free key: https://aistudio.google.com/app/apikey");
     }
-    if (!config.weather.apiKey || config.weather.apiKey === "your_openweathermap_api_key_here") {
-      console.log("⚠️  WEATHER_API_KEY not set — weather will use fallback data.");
+    if (
+      !config.weather.apiKey ||
+      config.weather.apiKey === "your_openweathermap_api_key_here"
+    ) {
+      console.log(
+        "⚠️  WEATHER_API_KEY not set — weather will use fallback data.",
+      );
       console.log("   Get a free key: https://openweathermap.org/api");
     }
 
     console.log("\n📋  Demo credentials:");
-    console.log("    Farmer : ramesh@example.com / Demo@1234   (run: npm run seed)");
+    console.log(
+      "    Farmer : ramesh@example.com / Demo@1234   (run: npm run seed)",
+    );
     console.log("    Admin  : admin@agriai.in    / Admin@1234\n");
   });
 
@@ -38,7 +50,7 @@ async function start() {
   };
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT",  () => shutdown("SIGINT"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 
   process.on("unhandledRejection", (reason) => {
     console.error("Unhandled Rejection:", reason);
