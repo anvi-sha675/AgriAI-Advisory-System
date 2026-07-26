@@ -103,7 +103,7 @@ app.use("/api/bookmarks", bookmarkRouter);
 app.use("/api/schemes", schemeRouter);
 app.use("/api/admin", adminRouter);
 
-
+app.use(notFound);
 app.use(errorHandler);
 
 export default app;
