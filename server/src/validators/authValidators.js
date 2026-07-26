@@ -28,6 +28,31 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const adminCreateUserSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
+  email: z.string().trim().email("Enter a valid email address"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?\d{10,13}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal("")),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72),
+  role: z.enum(["farmer", "admin"]).optional(),
+});
+
+export const adminUpdateUserSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  email: z.string().trim().email("Enter a valid email address").optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?\d{10,13}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal("")),
+  role: z.enum(["farmer", "admin"]).optional(),
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
+});
 export const validateBody = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
   if (!result.success) {

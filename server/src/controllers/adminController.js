@@ -111,6 +111,81 @@ export const getUser = async (req, res, next) => {
   }
 };
 
+export const createUser = async (req, res, next) => {
+  try {
+    const { name, email, phone, password, role = "farmer" } = req.body;
+    if (!name || !email || !password) {
+      return sendError(res, "name, email, and password are required.");
+    }
+    const validRoles = ["farmer", "admin"];
+    if (!validRoles.includes(role)) {
+      return sendError(res, `role must be one of: ${validRoles.join(", ")}.`);
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing)
+      return sendError(res, "A user with this email already exists.");
+
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      phone,
+      password,
+      role,
+    });
+    sendSuccess(res, { user: user.toSafeObject() }, 201, "User created.");
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateUser = async (req, res, next) => {
+  try {
+    const { name, email, phone, role, status } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email.toLowerCase();
+    if (phone !== undefined) updates.phone = phone;
+    if (role !== undefined) {
+      const validRoles = ["farmer", "admin"];
+      if (!validRoles.includes(role))
+        return sendError(res, `role must be one of: ${validRoles.join(", ")}.`);
+      if (req.params.id === req.user._id.toString() && role !== "admin") {
+        return sendError(res, "You cannot remove your own admin role.");
+      }
+      updates.role = role;
+    }
+    if (status !== undefined) {
+      const validStatuses = ["active", "inactive", "suspended"];
+      if (!validStatuses.includes(status))
+        return sendError(
+          res,
+          `status must be one of: ${validStatuses.join(", ")}.`,
+        );
+      if (req.params.id === req.user._id.toString())
+        return sendError(res, "You cannot change your own status.");
+      updates.status = status;
+    }
+
+    if (email !== undefined) {
+      const clash = await User.findOne({
+        email: updates.email,
+        _id: { $ne: req.params.id },
+      });
+      if (clash) return sendError(res, "Another user already uses this email.");
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
+    if (!user) return sendError(res, "User not found.", 404);
+    sendSuccess(res, { user: user.toSafeObject() }, 200, "User updated.");
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateUserStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
@@ -152,6 +227,30 @@ export const deleteUser = async (req, res, next) => {
       DiseaseResult.deleteMany({ userId: req.params.id }),
     ]);
     sendSuccess(res, null, 200, "User and associated data removed.");
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getChatById = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id).populate(
+      "userId",
+      "name email",
+    );
+    if (!chat) return sendError(res, "Chat not found.", 404);
+    sendSuccess(res, {
+      chat: {
+        id: chat._id,
+        userId: chat.userId?._id,
+        userName: chat.userId?.name || "Unknown",
+        userEmail: chat.userId?.email || "",
+        title: chat.title,
+        messages: chat.messages,
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt,
+      },
+    });
   } catch (err) {
     next(err);
   }
