@@ -13,6 +13,19 @@ Rules:
 - Always mention safety precautions for chemicals
 - If unsure, say so and recommend a local agricultural extension officer
 - Always respond in English, regardless of what language the farmer's question is written in`;
+
+async function logGeminiFailure(res) {
+  if (!config.isDev) return;
+  const body = await res.text().catch(() => "");
+  console.warn(
+    `⚠️  Gemini API returned ${res.status} for model "${config.gemini.model}":`,
+    body.slice(0, 300),
+  );
+}
+function logGeminiError(err) {
+  if (config.isDev) console.warn("⚠️  Gemini API request failed:", err.message);
+}
+
 async function geminiGenerate(prompt, history = []) {
   if (!isConfigured()) return null;
   const contents = [
@@ -35,10 +48,14 @@ async function geminiGenerate(prompt, history = []) {
         }),
       },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      await logGeminiFailure(res);
+      return null;
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch {
+  } catch (err) {
+    logGeminiError(err);
     return null;
   }
 }
@@ -64,10 +81,14 @@ async function geminiVision(base64Image, mimeType, prompt) {
         }),
       },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      await logGeminiFailure(res);
+      return null;
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch {
+  } catch (err) {
+    logGeminiError(err);
     return null;
   }
 }
@@ -111,8 +132,6 @@ function parseAdvisory(rawText) {
     prevention: prevention.slice(0, 3),
   };
 }
-
-// ── Fallbacks ─────────────────────────────────────────────────────────────────
 
 const FALLBACK_CHATS = [
   {
@@ -204,7 +223,6 @@ const DEFAULT_FALLBACK = {
   ],
 };
 
-
 export async function sendAdvisoryMessage(message, history = []) {
   const raw = await geminiGenerate(message, history);
   if (raw) return parseAdvisory(raw);
@@ -279,6 +297,7 @@ Recommend 3 crops. Respond ONLY with valid JSON:
       const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
       return { soilType, season, location, ...parsed };
     } catch {
+      /* fall through */
     }
   }
 
