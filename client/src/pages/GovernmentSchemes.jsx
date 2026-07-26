@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Landmark,
   Calendar,
@@ -9,22 +9,40 @@ import {
 } from "lucide-react";
 import Badge from "../components/ui/Badge";
 import { EmptyState } from "../components/ui/EmptyState";
-import { governmentSchemes } from "../utils/mockData";
+import { Loader } from "../components/ui/Loader";
 import { useToast } from "../context/ToastContext";
+import { api } from "../utils/api";
 
 export default function GovernmentSchemes() {
   const [query, setQuery] = useState("");
+  const [schemes, setSchemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { addToast } = useToast();
 
-  const filtered = governmentSchemes.filter(
-    (s) =>
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.category.toLowerCase().includes(query.toLowerCase()),
-  );
+  const load = useCallback(async (search) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get(
+        `/schemes${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+      );
+      setSchemes(data.schemes || []);
+    } catch (err) {
+      setError(err.message || "Couldn't load schemes.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => load(query), 300); // debounce, filtered server-side
+    return () => clearTimeout(t);
+  }, [query, load]);
 
   const handleLearnMore = (name) => {
     addToast(
-      `More details for "${name}" would open here once connected to a real schemes database.`,
+      `Full scheme details for "${name}" would link to the official government portal here.`,
       "info",
     );
   };
@@ -52,7 +70,21 @@ export default function GovernmentSchemes() {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="card">
+          <Loader label="Loading schemes..." />
+        </div>
+      ) : error ? (
+        <div className="card py-10 text-center">
+          <p className="text-sm text-red-500 mb-3">{error}</p>
+          <button
+            onClick={() => load(query)}
+            className="text-sm font-medium text-primary-700 dark:text-secondary-400 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : schemes.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Landmark}
@@ -62,7 +94,7 @@ export default function GovernmentSchemes() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((scheme) => (
+          {schemes.map((scheme) => (
             <div key={scheme.id} className="card p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
