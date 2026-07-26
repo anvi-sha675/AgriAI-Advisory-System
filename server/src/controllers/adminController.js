@@ -1,6 +1,84 @@
 import { User, Chat, DiseaseResult } from "../models/index.js";
 import { sendSuccess, sendError } from "../utils/response.js";
 
+export const getReports = async (req, res, next) => {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const [queryTrendRaw, userGrowthRaw, diseaseCropRaw] = await Promise.all([
+      Chat.aggregate([
+        { $unwind: "$messages" },
+        {
+          $match: {
+            "messages.role": "user",
+            "messages.createdAt": { $gte: sevenDaysAgo },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$messages.createdAt",
+              },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      User.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      DiseaseResult.aggregate([
+        { $group: { _id: "$crop", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 6 },
+      ]),
+    ]);
+
+    const queryTrend = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString("en-US", { weekday: "short" });
+      const found = queryTrendRaw.find((r) => r._id === key);
+      queryTrend.push({ day: label, queries: found?.count || 0 });
+    }
+
+    const userGrowth = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - i);
+      const key = d.toISOString().slice(0, 7);
+      const label = d.toLocaleDateString("en-US", { month: "short" });
+      const found = userGrowthRaw.find((r) => r._id === key);
+      userGrowth.push({ month: label, users: found?.count || 0 });
+    }
+
+    const diseaseByCrop = diseaseCropRaw.map((r) => ({
+      name: r._id || "Unknown",
+      value: r.count,
+    }));
+
+    sendSuccess(res, { queryTrend, userGrowth, diseaseByCrop });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getAdminStats = async (req, res, next) => {
   try {
     const [totalUsers, totalChats, totalDiseaseReports, activeUsers] =
@@ -40,13 +118,6 @@ export const getAdminStats = async (req, res, next) => {
         totalDiseaseReports,
         activeUsers,
       },
-      queryCategoryData: [
-        { name: "Disease", value: 86 },
-        { name: "Pest", value: 54 },
-        { name: "Weather", value: 38 },
-        { name: "Fertilizer", value: 42 },
-        { name: "Irrigation", value: 28 },
-      ],
       recentChats: formattedRecent,
     });
   } catch (err) {
@@ -74,7 +145,6 @@ export const listUsers = async (req, res, next) => {
       User.countDocuments(filter),
     ]);
 
-    // Attach per-user query count
     const userIds = usersRaw.map((u) => u._id);
     const chatCounts = await Chat.aggregate([
       { $match: { userId: { $in: userIds } } },
@@ -221,7 +291,6 @@ export const deleteUser = async (req, res, next) => {
     }
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return sendError(res, "User not found.", 404);
-    // Cascade delete user's chats and disease results
     await Promise.all([
       Chat.deleteMany({ userId: req.params.id }),
       DiseaseResult.deleteMany({ userId: req.params.id }),
