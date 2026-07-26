@@ -13,6 +13,7 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { useToast } from "../context/ToastContext";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 import { cn } from "../utils/helpers";
 
 const languageOptions = ["English", "Hindi", "Marathi", "Tamil", "Bengali"];
@@ -53,23 +54,37 @@ function ToggleRow({ title, description, checked, onChange }) {
 export default function Settings() {
   const { addToast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const { user, changePassword, updateProfile } = useAuth();
+
   const [showCurrent, setShowCurrent] = useState(false);
   const [passwords, setPasswords] = useState({
     current: "",
     next: "",
     confirm: "",
   });
-  const [notifications, setNotifications] = useState({
-    rain: true,
-    pest: true,
-    schemes: false,
-    weekly: true,
-  });
-  const [language, setLanguage] = useState("English");
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const [notifications, setNotifications] = useState(
+    user?.notificationPreferences || {
+      rain: true,
+      pest: true,
+      schemes: false,
+      weekly: true,
+    },
+  );
+  const [savingNotifKey, setSavingNotifKey] = useState(null);
+
+  const [language, setLanguage] = useState(
+    user?.preferredLanguage || "English",
+  );
+  const [savingLanguage, setSavingLanguage] = useState(false);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
+    if (!passwords.current) {
+      addToast("Enter your current password.", "error");
+      return;
+    }
     if (passwords.next.length < 8) {
       addToast("New password must be at least 8 characters.", "error");
       return;
@@ -78,11 +93,45 @@ export default function Settings() {
       addToast("Passwords do not match.", "error");
       return;
     }
-    setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 700));
-    setIsSaving(false);
-    setPasswords({ current: "", next: "", confirm: "" });
-    addToast("Password changed successfully.", "success");
+    setIsSavingPassword(true);
+    try {
+      await changePassword(passwords.current, passwords.next);
+      setPasswords({ current: "", next: "", confirm: "" });
+      addToast("Password changed successfully.", "success");
+    } catch (err) {
+      addToast(err.message || "Couldn't change your password.", "error");
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleNotificationToggle = async (key, value) => {
+    const prev = notifications;
+    const next = { ...notifications, [key]: value };
+    setNotifications(next);
+    setSavingNotifKey(key);
+    try {
+      await updateProfile({ notificationPreferences: next });
+    } catch {
+      setNotifications(prev);
+      addToast("Couldn't save that preference — please try again.", "error");
+    } finally {
+      setSavingNotifKey(null);
+    }
+  };
+
+  const handleLanguageSelect = async (lang) => {
+    const prev = language;
+    setLanguage(lang);
+    setSavingLanguage(true);
+    try {
+      await updateProfile({ preferredLanguage: lang });
+    } catch {
+      setLanguage(prev);
+      addToast("Couldn't save your language preference.", "error");
+    } finally {
+      setSavingLanguage(false);
+    }
   };
 
   return (
@@ -139,7 +188,7 @@ export default function Settings() {
           />
         </div>
         <div className="flex justify-end">
-          <Button type="submit" icon={Save} isLoading={isSaving}>
+          <Button type="submit" icon={Save} isLoading={isSavingPassword}>
             Update Password
           </Button>
         </div>
@@ -155,27 +204,30 @@ export default function Settings() {
             title="Rain alerts"
             description="Get notified before heavy rainfall in your area"
             checked={notifications.rain}
-            onChange={(v) => setNotifications({ ...notifications, rain: v })}
+            onChange={(v) => handleNotificationToggle("rain", v)}
           />
           <ToggleRow
             title="Pest outbreak warnings"
             description="Regional pest activity alerts"
             checked={notifications.pest}
-            onChange={(v) => setNotifications({ ...notifications, pest: v })}
+            onChange={(v) => handleNotificationToggle("pest", v)}
           />
           <ToggleRow
             title="Government scheme updates"
             description="New subsidies and schemes relevant to you"
             checked={notifications.schemes}
-            onChange={(v) => setNotifications({ ...notifications, schemes: v })}
+            onChange={(v) => handleNotificationToggle("schemes", v)}
           />
           <ToggleRow
             title="Weekly summary email"
             description="A recap of your queries and recommendations"
             checked={notifications.weekly}
-            onChange={(v) => setNotifications({ ...notifications, weekly: v })}
+            onChange={(v) => handleNotificationToggle("weekly", v)}
           />
         </div>
+        {savingNotifKey && (
+          <p className="text-xs text-gray-400 mt-2">Saving...</p>
+        )}
       </div>
 
       <div className="card p-6 sm:p-8">
@@ -187,9 +239,10 @@ export default function Settings() {
           {languageOptions.map((lang) => (
             <button
               key={lang}
-              onClick={() => setLanguage(lang)}
+              onClick={() => handleLanguageSelect(lang)}
+              disabled={savingLanguage}
               className={cn(
-                "px-4 py-2 rounded-xl text-sm font-medium border transition-colors",
+                "px-4 py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-60",
                 language === lang
                   ? "bg-primary-700 text-white border-primary-700"
                   : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary-300",
