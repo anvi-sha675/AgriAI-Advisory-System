@@ -146,7 +146,9 @@ export default function ChatBubble({ message }) {
               isUser ? "text-primary-100" : "text-gray-400",
             )}
           >
-            {message.timestamp ? formatTime(message.timestamp) : ""}
+            {message.timestamp || message.createdAt
+              ? formatTime(message.timestamp || message.createdAt)
+              : ""}
           </span>
           {!isUser && (
             <div className="flex items-center gap-2.5">
