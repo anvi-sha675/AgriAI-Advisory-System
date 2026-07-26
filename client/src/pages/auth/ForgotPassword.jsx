@@ -4,11 +4,13 @@ import { Mail, ArrowRight, ArrowLeft, ShieldCheck, Lock } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useToast } from "../../context/ToastContext";
+import { api } from "../../utils/api";
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [resetToken, setResetToken] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
@@ -20,10 +22,21 @@ export default function ForgotPassword() {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-    addToast("OTP sent to your email.", "success");
-    setStep(2);
+    try {
+      await api.post("/auth/forgot-password", { email });
+      addToast(
+        "If an account exists for that email, a code has been sent.",
+        "success",
+      );
+      setStep(2);
+    } catch (err) {
+      addToast(
+        err.message || "Couldn't send the code. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerifyOtp = async (e) => {
@@ -33,9 +46,15 @@ export default function ForgotPassword() {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-    setStep(3);
+    try {
+      const data = await api.post("/auth/verify-otp", { email, otp });
+      setResetToken(data.resetToken);
+      setStep(3);
+    } catch (err) {
+      addToast(err.message || "Incorrect code. Please try again.", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResetPassword = async (e) => {
@@ -45,10 +64,22 @@ export default function ForgotPassword() {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-    addToast("Password reset successful! Please log in.", "success");
-    setStep(4);
+    try {
+      await api.post("/auth/reset-password", {
+        email,
+        resetToken,
+        newPassword,
+      });
+      addToast("Password reset successful! Please log in.", "success");
+      setStep(4);
+    } catch (err) {
+      addToast(
+        err.message || "Couldn't reset your password. Please start again.",
+        "error",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
