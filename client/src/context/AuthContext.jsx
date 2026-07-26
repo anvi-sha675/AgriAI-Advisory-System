@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { normalizeIds } from "../utils/api";
 
 const AuthContext = createContext(null);
 
@@ -28,7 +29,7 @@ async function apiPost(path, body) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Request failed");
-    return { ok: true, data: data.data };
+    return { ok: true, data: normalizeIds(data.data) };
   } catch (err) {
     if (err.message === "Failed to fetch" || err.name === "TypeError") {
       return { ok: false, offline: true };
@@ -44,7 +45,7 @@ async function apiGet(path, token) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Request failed");
-    return { ok: true, data: data.data };
+    return { ok: true, data: normalizeIds(data.data) };
   } catch (err) {
     return { ok: false, message: err.message };
   }
@@ -62,7 +63,7 @@ async function apiPatch(path, body, token) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Request failed");
-    return data.data;
+    return normalizeIds(data.data);
   } catch {
     return null;
   }
