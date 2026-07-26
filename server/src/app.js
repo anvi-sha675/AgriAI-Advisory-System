@@ -12,6 +12,7 @@ import { authRouter } from "./routes/auth.js";
 import chatRouter from "./routes/chat.js";
 import diseaseRouter from "./routes/disease.js";
 import adminRouter from "./routes/admin.js";
+import contactRouter from "./routes/contact.js";
 import {
   cropRouter,
   soilRouter,
@@ -102,6 +103,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/bookmarks", bookmarkRouter);
 app.use("/api/schemes", schemeRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/contact", contactRouter);
 
 app.use(notFound);
 app.use(errorHandler);
