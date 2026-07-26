@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema(
         "Password is required",
       ],
       minlength: [8, "Password must be at least 8 characters"],
-      select: false, // never returned in queries by default
+      select: false,
     },
     googleId: {
       type: String,
@@ -57,6 +57,12 @@ const userSchema = new mongoose.Schema(
     },
     location: { type: String, default: "" },
     preferredLanguage: { type: String, default: "English" },
+    notificationPreferences: {
+      rain: { type: Boolean, default: true },
+      pest: { type: Boolean, default: true },
+      schemes: { type: Boolean, default: false },
+      weekly: { type: Boolean, default: true },
+    },
     primaryCrops: { type: [String], default: [] },
     farmSize: { type: String, default: "" },
     joinedOn: {
