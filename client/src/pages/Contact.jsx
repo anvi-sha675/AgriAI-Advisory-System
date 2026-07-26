@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Send, Clock } from "lucide-react";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { useToast } from "../context/ToastContext";
+import { api } from "../utils/api";
 
 const contactInfo = [
   { icon: Mail, label: "Email", value: "support@agriai.in" },
@@ -24,10 +25,21 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSubmitting(false);
-    addToast("Message sent! We'll get back to you within 24 hours.", "success");
-    setForm({ name: "", email: "", subject: "", message: "" });
+    try {
+      await api.post("/contact", form);
+      addToast(
+        "Message sent! We'll get back to you within 24 hours.",
+        "success",
+      );
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      addToast(
+        err.message || "Couldn't send your message. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
