@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { BookmarksProvider } from "./context/BookmarksContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import PublicLayout from "./layouts/PublicLayout";
 import AuthLayout from "./layouts/AuthLayout";
@@ -51,84 +52,92 @@ export default function App() {
         <AuthProvider>
           <BookmarksProvider>
             <BrowserRouter>
-              <Routes>
-                {/* Public marketing + static pages */}
-                <Route element={<PublicLayout />}>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route
-                    path="/terms-and-conditions"
-                    element={<TermsConditions />}
-                  />
-                  <Route path="/help-center" element={<HelpCenter />} />
-                </Route>
+              <ErrorBoundary>
+                <Routes>
+                  {/* Public marketing + static pages */}
+                  <Route element={<PublicLayout />}>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route
+                      path="/terms-and-conditions"
+                      element={<TermsConditions />}
+                    />
+                    <Route path="/help-center" element={<HelpCenter />} />
+                  </Route>
 
-                {/* Auth pages */}
-                <Route element={<AuthLayout />}>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/oauth-callback" element={<OAuthCallback />} />
-                </Route>
+                  {/* Auth pages */}
+                  <Route element={<AuthLayout />}>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route
+                      path="/forgot-password"
+                      element={<ForgotPassword />}
+                    />
+                    <Route path="/oauth-callback" element={<OAuthCallback />} />
+                  </Route>
 
-                {/* Authenticated dashboard pages */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <DashboardLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/history" element={<ChatHistory />} />
+                  {/* Authenticated dashboard pages */}
                   <Route
-                    path="/disease-detection"
-                    element={<DiseaseDetection />}
-                  />
-                  <Route
-                    path="/crop-recommendation"
-                    element={<CropRecommendation />}
-                  />
-                  <Route path="/soil-health" element={<SoilHealth />} />
-                  <Route path="/weather" element={<Weather />} />
-                  <Route path="/voice-assistant" element={<VoiceAssistant />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/bookmarks" element={<Bookmarks />} />
-                  <Route
-                    path="/notifications"
-                    element={<NotificationCenter />}
-                  />
-                  <Route
-                    path="/government-schemes"
-                    element={<GovernmentSchemes />}
-                  />
-                  <Route
-                    path="/component-showcase"
-                    element={<ComponentShowcase />}
-                  />
-                </Route>
+                    element={
+                      <ProtectedRoute>
+                        <DashboardLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/history" element={<ChatHistory />} />
+                    <Route
+                      path="/disease-detection"
+                      element={<DiseaseDetection />}
+                    />
+                    <Route
+                      path="/crop-recommendation"
+                      element={<CropRecommendation />}
+                    />
+                    <Route path="/soil-health" element={<SoilHealth />} />
+                    <Route path="/weather" element={<Weather />} />
+                    <Route
+                      path="/voice-assistant"
+                      element={<VoiceAssistant />}
+                    />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/bookmarks" element={<Bookmarks />} />
+                    <Route
+                      path="/notifications"
+                      element={<NotificationCenter />}
+                    />
+                    <Route
+                      path="/government-schemes"
+                      element={<GovernmentSchemes />}
+                    />
+                    <Route
+                      path="/component-showcase"
+                      element={<ComponentShowcase />}
+                    />
+                  </Route>
 
-                {/* Admin pages */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/chats" element={<AdminChats />} />
-                  <Route path="/admin/reports" element={<AdminReports />} />
-                </Route>
+                  {/* Admin pages */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <AdminLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/chats" element={<AdminChats />} />
+                    <Route path="/admin/reports" element={<AdminReports />} />
+                  </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
             </BrowserRouter>
           </BookmarksProvider>
         </AuthProvider>
