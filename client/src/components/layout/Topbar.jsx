@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -17,8 +17,8 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { initialsFromName } from "../../utils/helpers";
-import { notifications as initialNotifications } from "../../utils/mockData";
+import { initialsFromName, formatDate } from "../../utils/helpers";
+import { api } from "../../utils/api";
 import { cn } from "../../utils/helpers";
 
 const notificationIcons = {
@@ -35,7 +35,22 @@ export default function Topbar({ onMenuClick, title }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("/notifications")
+      .then((data) => {
+        if (!cancelled) setNotifications(data.notifications || []);
+      })
+      .catch(() => {
+        /* topbar dropdown fails silently — NotificationCenter page shows the real error */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -46,13 +61,15 @@ export default function Topbar({ onMenuClick, title }) {
   };
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))); // optimistic
+    api.patch("/notifications/mark-all-read", {}).catch(() => {});
   };
 
   const markOneRead = (id) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
+    api.patch(`/notifications/${id}/read`, {}).catch(() => {});
   };
 
   return (
@@ -148,7 +165,7 @@ export default function Topbar({ onMenuClick, title }) {
                               {n.message}
                             </p>
                             <p className="text-[11px] text-gray-400 mt-1">
-                              {n.time}
+                              {formatDate(n.createdAt)}
                             </p>
                           </div>
                           {!n.read && (

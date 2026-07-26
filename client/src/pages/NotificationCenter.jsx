@@ -1,27 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Bell,
   CloudRain,
   Bug,
   MessageCircle,
   Megaphone,
+  Info,
   CheckCheck,
 } from "lucide-react";
 import { EmptyState } from "../components/ui/EmptyState";
-import { cn } from "../utils/helpers";
-import { notifications as initialNotifications } from "../utils/mockData";
+import { Loader } from "../components/ui/Loader";
+import { cn, formatDate } from "../utils/helpers";
+import { useToast } from "../context/ToastContext";
+import { api } from "../utils/api";
 
 const typeIcons = {
   weather: CloudRain,
   pest: Bug,
   chat: MessageCircle,
   scheme: Megaphone,
+  system: Info,
 };
 const typeLabels = {
   weather: "Weather",
   pest: "Pest Alert",
   chat: "AI Chat",
   scheme: "Govt. Scheme",
+  system: "System",
 };
 
 const filters = [
@@ -34,8 +39,28 @@ const filters = [
 ];
 
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
+  const { addToast } = useToast();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get("/notifications");
+      setNotifications(data.notifications || []);
+    } catch (err) {
+      setError(err.message || "Couldn't load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = notifications.filter((n) => {
     if (activeFilter === "all") return true;
@@ -45,12 +70,32 @@ export default function NotificationCenter() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllRead = () =>
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  const toggleRead = (id) =>
+  const markAllRead = async () => {
+    const prev = notifications;
+    setNotifications((p) => p.map((n) => ({ ...n, read: true }))); // optimistic
+    try {
+      await api.patch("/notifications/mark-all-read", {});
+    } catch (err) {
+      setNotifications(prev); // revert on failure
+      addToast(err.message || "Couldn't mark all as read.", "error");
+    }
+  };
+
+  const toggleRead = async (n) => {
+    const nextRead = !n.read;
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n)),
-    );
+      prev.map((x) => (x.id === n.id ? { ...x, read: nextRead } : x)),
+    ); // optimistic
+    if (!nextRead) return;
+    try {
+      await api.patch(`/notifications/${n.id}/read`, {});
+    } catch (err) {
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, read: n.read } : x)),
+      ); // revert
+      addToast(err.message || "Couldn't update notification.", "error");
+    }
+  };
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -92,7 +137,21 @@ export default function NotificationCenter() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="card">
+          <Loader label="Loading notifications..." />
+        </div>
+      ) : error ? (
+        <div className="card py-10 text-center">
+          <p className="text-sm text-red-500 mb-3">{error}</p>
+          <button
+            onClick={load}
+            className="text-sm font-medium text-primary-700 dark:text-secondary-400 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Bell}
@@ -107,7 +166,7 @@ export default function NotificationCenter() {
             return (
               <button
                 key={n.id}
-                onClick={() => toggleRead(n.id)}
+                onClick={() => toggleRead(n)}
                 className={cn(
                   "w-full flex items-start gap-3 p-4 sm:p-5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors",
                   !n.read && "bg-primary-50/40 dark:bg-primary-950/20",
@@ -122,13 +181,15 @@ export default function NotificationCenter() {
                       {n.title}
                     </p>
                     <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 shrink-0">
-                      {typeLabels[n.type]}
+                      {typeLabels[n.type] || n.type}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                     {n.message}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1.5">{n.time}</p>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    {formatDate(n.createdAt)}
+                  </p>
                 </div>
                 {!n.read && (
                   <span
