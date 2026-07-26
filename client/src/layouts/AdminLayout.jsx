@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import Topbar from "../components/layout/Topbar";
 import PageTransition from "../components/layout/PageTransition";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { adminTitles } from "../utils/pageTitles";
 
 export default function AdminLayout() {
@@ -17,7 +18,9 @@ export default function AdminLayout() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} title={title} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <PageTransition>
-            <Outlet />
+            <ErrorBoundary key={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </PageTransition>
         </main>
       </div>
