@@ -28,6 +28,27 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address"),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address"),
+  resetToken: z.string().min(1, "Missing reset token"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72),
+});
+
 export const adminCreateUserSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters"),
   email: z.string().trim().email("Enter a valid email address"),
@@ -53,6 +74,7 @@ export const adminUpdateUserSchema = z.object({
   role: z.enum(["farmer", "admin"]).optional(),
   status: z.enum(["active", "inactive", "suspended"]).optional(),
 });
+
 export const validateBody = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
   if (!result.success) {

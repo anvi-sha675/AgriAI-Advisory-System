@@ -1,4 +1,5 @@
 import { Router as AuthRouter } from "express";
+import rateLimit from "express-rate-limit";
 export const authRouter = AuthRouter();
 import passport, { isGoogleConfigured } from "../config/passport.js";
 import {
@@ -9,12 +10,18 @@ import {
   getMe,
   updateProfile,
   changePassword,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
 import {
   validateBody,
   registerSchema,
   loginSchema,
+  forgotPasswordSchema,
+  verifyOtpSchema,
+  resetPasswordSchema,
 } from "../validators/authValidators.js";
 import { sendError } from "../utils/response.js";
 
@@ -24,6 +31,35 @@ authRouter.post("/logout", protect, logout);
 authRouter.get("/me", protect, getMe);
 authRouter.patch("/me", protect, updateProfile);
 authRouter.patch("/change-password", protect, changePassword);
+
+const otpRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many attempts. Please try again in 15 minutes.",
+  },
+});
+authRouter.post(
+  "/forgot-password",
+  otpRateLimit,
+  validateBody(forgotPasswordSchema),
+  forgotPassword,
+);
+authRouter.post(
+  "/verify-otp",
+  otpRateLimit,
+  validateBody(verifyOtpSchema),
+  verifyOtp,
+);
+authRouter.post(
+  "/reset-password",
+  otpRateLimit,
+  validateBody(resetPasswordSchema),
+  resetPassword,
+);
 
 authRouter.get("/google", (req, res, next) => {
   if (!isGoogleConfigured) {
