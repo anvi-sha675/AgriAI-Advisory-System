@@ -97,7 +97,6 @@ export function AuthProvider({ children }) {
       return result.data.user;
     }
     if (!result.offline) throw new Error(result.message || "Login failed");
-    // Demo fallback
     await new Promise((r) => setTimeout(r, 600));
     const demoUser =
       email === "admin@agriai.in"
@@ -161,6 +160,26 @@ export function AuthProvider({ children }) {
     setUser((prev) => ({ ...prev, ...partial }));
   };
 
+  // Real password change
+  const changePassword = async (currentPassword, newPassword) => {
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token || token === "demo_token") {
+      throw new Error(
+        "Password changes aren't available in demo mode — the backend isn't reachable.",
+      );
+    }
+    const res = await fetch(`${API_BASE}/auth/change-password`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Couldn't change password.");
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -170,6 +189,7 @@ export function AuthProvider({ children }) {
         logout,
         loginWithToken,
         updateProfile,
+        changePassword,
         isAuthenticated: !!user,
       }}
     >
