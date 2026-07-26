@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -8,29 +8,55 @@ import {
   History,
 } from "lucide-react";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Loader } from "../components/ui/Loader";
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
-import { chatHistoryList } from "../utils/mockData";
 import { formatDate } from "../utils/helpers";
 import { useToast } from "../context/ToastContext";
+import { api } from "../utils/api";
 
 export default function ChatHistory() {
   const [query, setQuery] = useState("");
-  const [chats, setChats] = useState(chatHistoryList);
+  const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const { addToast } = useToast();
   const navigate = useNavigate();
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get("/chat");
+      setChats(data.items || []);
+    } catch (err) {
+      setError(err.message || "Couldn't load your conversations.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const filtered = chats.filter(
     (c) =>
       c.title.toLowerCase().includes(query.toLowerCase()) ||
-      c.preview.toLowerCase().includes(query.toLowerCase()),
+      (c.preview || "").toLowerCase().includes(query.toLowerCase()),
   );
 
-  const confirmDelete = () => {
-    setChats((prev) => prev.filter((c) => c.id !== deleteTarget.id));
-    addToast("Conversation deleted.", "success");
-    setDeleteTarget(null);
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/chat/${deleteTarget.id}`);
+      setChats((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      addToast("Conversation deleted.", "success");
+    } catch (err) {
+      addToast(err.message || "Couldn't delete conversation.", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   return (
@@ -45,7 +71,21 @@ export default function ChatHistory() {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="card">
+          <Loader label="Loading your conversations..." />
+        </div>
+      ) : error ? (
+        <div className="card py-10 text-center">
+          <p className="text-sm text-red-500 mb-3">{error}</p>
+          <button
+            onClick={load}
+            className="text-sm font-medium text-primary-700 dark:text-secondary-400 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={History}
