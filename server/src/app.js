@@ -101,6 +101,17 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(passport.initialize());
 if (config.isDev) app.use(requestLogger);
 
+app.get("/", (_req, res) => {
+  res.json({
+    success: true,
+    message: "AgriAI API Server is running. API endpoints are under /api",
+    health: "/api/health",
+    version: "1.0.0",
+    environment: config.nodeEnv,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({
     success: true,

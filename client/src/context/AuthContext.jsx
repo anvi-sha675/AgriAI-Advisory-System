@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { normalizeIds } from "../utils/api";
+import { getApiBaseUrl, normalizeIds } from "../utils/api";
 
 const AuthContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE = getApiBaseUrl();
 const TOKEN_KEY = "agriai-token";
 const USER_KEY = "agriai-auth";
 

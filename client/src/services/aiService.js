@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { getApiBaseUrl } from "../utils/api";
+
+const API_BASE = getApiBaseUrl();
 const TOKEN_KEY = "agriai-token";
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));

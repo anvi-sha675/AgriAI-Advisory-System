@@ -1,4 +1,13 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export function getApiBaseUrl() {
+  let url = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  url = url.trim().replace(/\/+$/, "");
+  if (!url.endsWith("/api")) {
+    url += "/api";
+  }
+  return url;
+}
+
+const API_BASE = getApiBaseUrl();
 const TOKEN_KEY = "agriai-token";
 
 function getToken() {
