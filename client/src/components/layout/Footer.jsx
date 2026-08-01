@@ -1,13 +1,7 @@
 import { Link } from "react-router-dom";
-import {
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
-  Mail,
-  MapPin,
-  Phone,
-} from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 import Logo from "./Logo";
 
 const linkGroups = [
@@ -38,10 +32,10 @@ const linkGroups = [
 ];
 
 const socials = [
-  { icon: Facebook, label: "Facebook", href: "#" },
-  { icon: Twitter, label: "Twitter", href: "#" },
-  { icon: Instagram, label: "Instagram", href: "#" },
-  { icon: Youtube, label: "YouTube", href: "#" },
+  { icon: FaFacebook, label: "Facebook", href: "#" },
+  { icon: FaXTwitter, label: "Twitter", href: "#" },
+  { icon: FaInstagram, label: "Instagram", href: "#" },
+  { icon: FaYoutube, label: "YouTube", href: "#" },
 ];
 
 export default function Footer() {
