@@ -28,7 +28,6 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-
 const MOCK_RESPONSES = [
   {
     keywords: ["yellow", "wheat"],
@@ -100,7 +99,6 @@ const FALLBACK_RESPONSE = {
   ],
   prevention: ["Maintain field hygiene", "Rotate crops seasonally"],
 };
-
 
 export async function sendChatMessage(message, chatId = null) {
   const data = await apiFetch("/chat", {
@@ -269,15 +267,23 @@ export async function getSoilHealthAdvisory({
   };
 }
 
-export async function getWeather(_location) {
-  const query = _location ? `?location=${encodeURIComponent(_location)}` : "";
+export async function getWeather(locationOrCoords) {
+  let query = "";
+  if (locationOrCoords && typeof locationOrCoords === "object") {
+    query = `?lat=${locationOrCoords.lat}&lon=${locationOrCoords.lon}`;
+  } else if (locationOrCoords) {
+    query = `?location=${encodeURIComponent(locationOrCoords)}`;
+  }
   const data = await apiFetch(`/weather${query}`);
 
   if (data) return data;
 
   await delay(700);
   return {
-    location: "Nashik, Maharashtra",
+    location:
+      typeof locationOrCoords === "string"
+        ? locationOrCoords
+        : "Nashik, Maharashtra",
     current: {
       temp: 29,
       condition: "Partly Cloudy",
@@ -298,19 +304,9 @@ export async function getWeather(_location) {
         message: "Heavy rainfall expected mid-week — delay pesticide spraying.",
       },
     ],
+    isFallback: true,
   };
 }
-
-export async function transcribeVoice(_audioBlob) {
-  await delay(1400);
-  const samples = [
-    "मेरे गेहूं के पत्ते पीले हो रहे हैं",
-    "My tomato plants have white spots on the leaves",
-    "Best time to sow mustard this season?",
-  ];
-  return samples[Math.floor(Math.random() * samples.length)];
-}
-
 export async function fetchChatHistory() {
   const data = await apiFetch("/chat");
   return data?.items || null;
