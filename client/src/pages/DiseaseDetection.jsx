@@ -16,11 +16,14 @@ import { useToast } from "../context/ToastContext";
 import { useBookmarks } from "../context/BookmarksContext";
 import { cn } from "../utils/helpers";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // matches backend multer limit in disease.js
+
 export default function DiseaseDetection() {
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef(null);
   const { addToast } = useToast();
@@ -31,8 +34,16 @@ export default function DiseaseDetection() {
       addToast("Please upload a valid image file.", "error");
       return;
     }
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      addToast(
+        "Image is too large — please upload a photo under 10MB.",
+        "error",
+      );
+      return;
+    }
     setFile(selectedFile);
     setResult(null);
+    setAnalyzeError(null);
     setPreview(URL.createObjectURL(selectedFile));
   };
 
@@ -44,15 +55,25 @@ export default function DiseaseDetection() {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
-    const data = await detectCropDisease(file);
-    setResult(data);
-    setIsAnalyzing(false);
+    setAnalyzeError(null);
+    try {
+      const data = await detectCropDisease(file);
+      setResult(data);
+    } catch (err) {
+      setAnalyzeError(
+        err.message || "Couldn't analyze this image. Please try again.",
+      );
+      addToast("Analysis failed — please try again.", "error");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleReset = () => {
     setFile(null);
     setPreview(null);
     setResult(null);
+    setAnalyzeError(null);
   };
 
   const handleBookmark = () => {
@@ -161,7 +182,20 @@ export default function DiseaseDetection() {
             </div>
           )}
 
-          {!isAnalyzing && !result && (
+          {!isAnalyzing && analyzeError && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <AlertTriangle className="h-8 w-8 text-red-500 mb-3" />
+              <p className="text-sm text-red-500 mb-3">{analyzeError}</p>
+              <button
+                onClick={handleAnalyze}
+                className="text-sm font-medium text-primary-700 dark:text-secondary-400 hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!isAnalyzing && !result && !analyzeError && (
             <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
               <ScanSearch className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm">
