@@ -59,20 +59,26 @@ function fallbackWeather(location) {
   };
 }
 
-export async function getWeatherData(location = "Nashik,IN") {
-  if (!isConfigured()) return fallbackWeather(location);
+export async function getWeatherData({ location, lat, lon } = {}) {
+  const fallbackLabel = location || "Nashik, Maharashtra";
+  if (!isConfigured()) return fallbackWeather(fallbackLabel);
+
+  const query =
+    lat != null && lon != null
+      ? `lat=${lat}&lon=${lon}`
+      : `q=${encodeURIComponent(location || "Nashik,IN")}`;
 
   try {
     const [curRes, foreRes] = await Promise.all([
       fetch(
-        `${config.weather.baseUrl}/weather?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric`,
+        `${config.weather.baseUrl}/weather?${query}&appid=${config.weather.apiKey}&units=metric`,
       ),
       fetch(
-        `${config.weather.baseUrl}/forecast?q=${encodeURIComponent(location)}&appid=${config.weather.apiKey}&units=metric&cnt=5`,
+        `${config.weather.baseUrl}/forecast?${query}&appid=${config.weather.apiKey}&units=metric&cnt=5`,
       ),
     ]);
 
-    if (!curRes.ok) return fallbackWeather(location);
+    if (!curRes.ok) return fallbackWeather(fallbackLabel);
 
     const cur = await curRes.json();
     const fore = foreRes.ok ? await foreRes.json() : null;
@@ -99,12 +105,12 @@ export async function getWeatherData(location = "Nashik,IN") {
             condition: f.weather[0].main,
             rain: f.pop ? Math.round(f.pop * 100) : 0,
           }))
-        : fallbackWeather(location).forecast,
+        : fallbackWeather(fallbackLabel).forecast,
       alerts: buildFarmingAlerts(cur),
       isFallback: false,
     };
   } catch (err) {
     console.error("Weather API error:", err.message);
-    return fallbackWeather(location);
+    return fallbackWeather(fallbackLabel);
   }
 }
