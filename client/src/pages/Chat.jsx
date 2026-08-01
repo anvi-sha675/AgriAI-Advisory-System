@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Mic, Image as ImageIcon, Sparkles, X } from "lucide-react";
 import ChatBubble, { TypingIndicator } from "../components/feature/ChatBubble";
 import { EmptyState } from "../components/ui/EmptyState";
-import { sendChatMessage } from "../services/aiService";
-import { chatHistoryList } from "../utils/mockData";
 import { cn } from "../utils/helpers";
 import { useToast } from "../context/ToastContext";
+import { api } from "../utils/api";
 
 const suggestedPrompts = [
   "My tomato leaves have white spots",
@@ -21,23 +20,49 @@ export default function Chat() {
   const { addToast } = useToast();
   const activeChatId = searchParams.get("id");
 
-  const [messages, setMessages] = useState(() => {
-    const existing = chatHistoryList.find((c) => c.id === activeChatId);
-    return existing ? existing.messages : [];
-  });
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [messages, setMessages] = useState([]);
+  const [activeTitle, setActiveTitle] = useState(null);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef(null);
   const idCounterRef = useRef(0);
 
-  // Load the selected past conversation whenever the ?id= param changes
-  // (e.g. navigating here from Chat History with a specific conversation).
+  const loadHistory = useCallback(() => {
+    setHistoryLoading(true);
+    api
+      .get("/chat")
+      .then((data) => setHistory(data.items || []))
+      .catch(() => {
+        /* sidebar history is secondary — main chat still works without it */
+      })
+      .finally(() => setHistoryLoading(false));
+  }, []);
+
   useEffect(() => {
-    if (!activeChatId) return;
-    const existing = chatHistoryList.find((c) => c.id === activeChatId);
-    setMessages(existing ? existing.messages : []);
+    loadHistory();
+  }, [loadHistory]);
+
+  useEffect(() => {
+    if (!activeChatId) {
+      setMessages([]);
+      setActiveTitle(null);
+      return;
+    }
+    api
+      .get(`/chat/${activeChatId}`)
+      .then((data) => {
+        setMessages(data.chat.messages || []);
+        setActiveTitle(data.chat.title);
+      })
+      .catch(() => {
+        addToast("Couldn't load that conversation.", "error");
+        setMessages([]);
+      });
     setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId]);
 
   useEffect(() => {
@@ -47,9 +72,10 @@ export default function Chat() {
   const handleSend = async (text) => {
     const content = text ?? input;
     if (!content.trim()) return;
+
     idCounterRef.current += 1;
     const userMsg = {
-      id: `u_${idCounterRef.current}`,
+      id: `local_${idCounterRef.current}`,
       role: "user",
       content,
       timestamp: new Date().toISOString(),
@@ -57,13 +83,32 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
-    const aiMsg = await sendChatMessage(content);
-    setIsTyping(false);
-    setMessages((prev) => [...prev, aiMsg]);
+
+    try {
+      const data = await api.post("/chat", {
+        message: content,
+        chatId: activeChatId || undefined,
+      });
+      setMessages((prev) => [...prev, { ...data.message, role: "assistant" }]);
+
+      if (!activeChatId) {
+        setSearchParams({ id: data.chatId }, { replace: true });
+        loadHistory();
+      }
+    } catch (err) {
+      addToast(
+        err.message || "Couldn't reach AgriAI. Please try again.",
+        "error",
+      );
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleNewChat = () => {
     setMessages([]);
+    setActiveTitle(null);
     setSidebarOpen(false);
     setSearchParams({}, { replace: true });
   };
@@ -84,39 +129,43 @@ export default function Chat() {
     navigate("/voice-assistant");
   };
 
-  const renderHistoryList = (onItemClick) => (
-    <>
-      {chatHistoryList.map((chat) => (
-        <button
-          key={chat.id}
-          onClick={() => {
-            handleSelectChat(chat.id);
-            onItemClick?.();
-          }}
+  const renderHistoryList = (onItemClick) => {
+    if (historyLoading) {
+      return <p className="text-xs text-gray-400 px-2 py-4">Loading...</p>;
+    }
+    if (history.length === 0) {
+      return (
+        <p className="text-xs text-gray-400 px-2 py-4">No conversations yet.</p>
+      );
+    }
+    return history.map((chat) => (
+      <button
+        key={chat.id}
+        onClick={() => {
+          handleSelectChat(chat.id);
+          onItemClick?.();
+        }}
+        className={cn(
+          "w-full text-left px-3 py-2.5 rounded-xl transition-colors",
+          chat.id === activeChatId
+            ? "bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800"
+            : "hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent",
+        )}
+      >
+        <p
           className={cn(
-            "w-full text-left px-3 py-2.5 rounded-xl transition-colors",
+            "text-sm font-medium truncate",
             chat.id === activeChatId
-              ? "bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800"
-              : "hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent",
+              ? "text-primary-700 dark:text-secondary-400"
+              : "text-ink dark:text-gray-100",
           )}
         >
-          <p
-            className={cn(
-              "text-sm font-medium truncate",
-              chat.id === activeChatId
-                ? "text-primary-700 dark:text-secondary-400"
-                : "text-ink dark:text-gray-100",
-            )}
-          >
-            {chat.title}
-          </p>
-          <p className="text-xs text-gray-400 truncate mt-0.5">
-            {chat.preview}
-          </p>
-        </button>
-      ))}
-    </>
-  );
+          {chat.title}
+        </p>
+        <p className="text-xs text-gray-400 truncate mt-0.5">{chat.preview}</p>
+      </button>
+    ));
+  };
 
   return (
     <div className="flex h-[calc(100vh-4rem)] -m-4 sm:-m-6 lg:-m-8">
@@ -174,10 +223,7 @@ export default function Chat() {
             </button>
             <Sparkles className="h-4 w-4 text-secondary-500" />
             <span className="text-sm font-medium text-ink dark:text-gray-100">
-              {activeChatId
-                ? chatHistoryList.find((c) => c.id === activeChatId)?.title ||
-                  "AgriAI Advisory Chat"
-                : "AgriAI Advisory Chat"}
+              {activeTitle || "AgriAI Advisory Chat"}
             </span>
           </div>
           <button
@@ -255,11 +301,12 @@ export default function Chat() {
               }}
               placeholder="Describe your farming question..."
               className="input-field flex-1 resize-none max-h-32"
+              disabled={isTyping}
             />
             <button
               type="submit"
               className="h-11 w-11 rounded-xl bg-primary-700 hover:bg-primary-800 text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isTyping}
               aria-label="Send message"
             >
               <Send className="h-4.5 w-4.5" />
