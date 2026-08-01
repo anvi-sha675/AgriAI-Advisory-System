@@ -1,36 +1,72 @@
-import { useState } from "react";
-import { Mic, Volume2, VolumeX, Sparkles, Square } from "lucide-react";
-import { transcribeVoice, sendChatMessage } from "../services/aiService";
+import { useEffect, useState } from "react";
+import {
+  Mic,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  Square,
+  AlertTriangle,
+} from "lucide-react";
+import { api } from "../utils/api";
 import { cn } from "../utils/helpers";
 import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useToast } from "../context/ToastContext";
 
 export default function VoiceAssistant() {
-  const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState("");
   const [response, setResponse] = useState(null);
-  const { speak, stop, isSpeaking, isSupported } = useSpeechSynthesis();
+  const [error, setError] = useState(null);
+  const {
+    speak,
+    stop,
+    isSpeaking,
+    isSupported: ttsSupported,
+  } = useSpeechSynthesis();
+  const {
+    start,
+    stop: stopListening,
+    isListening,
+    transcript,
+    error: sttError,
+    isSupported: sttSupported,
+  } = useSpeechRecognition({ lang: "en-IN" });
   const { addToast } = useToast();
 
-  const handleRecordToggle = async () => {
-    if (isRecording) {
-      setIsRecording(false);
+  useEffect(() => {
+    if (isListening || !transcript.trim() || isProcessing || response) return;
+    const send = async () => {
       setIsProcessing(true);
-      const text = await transcribeVoice();
-      setTranscript(text);
-      const aiResponse = await sendChatMessage(text);
-      setResponse(aiResponse);
-      setIsProcessing(false);
+      setError(null);
+      try {
+        const data = await api.post("/chat", { message: transcript });
+        setResponse(data.message);
+      } catch (err) {
+        setError(err.message || "Couldn't reach AgriAI. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+    send();
+  }, [isListening]);
+
+  useEffect(() => {
+    if (sttError)
+      addToast("Couldn't hear you clearly — please try again.", "error");
+  }, [sttError, addToast]);
+
+  const handleRecordToggle = () => {
+    if (isListening) {
+      stopListening();
     } else {
-      setIsRecording(true);
       setResponse(null);
-      setTranscript("");
+      setError(null);
+      start();
     }
   };
 
   const handlePlayResponse = () => {
-    if (!isSupported) {
+    if (!ttsSupported) {
       addToast("Read-aloud isn't supported in this browser.", "error");
       return;
     }
@@ -45,6 +81,21 @@ export default function VoiceAssistant() {
     speak(parts.filter(Boolean).join(". "));
   };
 
+  if (!sttSupported) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16">
+        <AlertTriangle className="h-8 w-8 text-accent-500 mx-auto mb-3" />
+        <h2 className="font-display text-lg font-semibold text-ink dark:text-gray-100">
+          Voice input isn't supported here
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Your browser doesn't support speech recognition. Try Chrome or Edge,
+          or use the regular Chat instead.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto flex flex-col items-center text-center py-6">
       <span className="section-eyebrow mb-3">Voice Assistant</span>
@@ -52,11 +103,12 @@ export default function VoiceAssistant() {
         Speak your farming question
       </h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
-        Tap the microphone and ask in your own language. No typing needed.
+        Tap the microphone and ask your question. Your browser transcribes it
+        live — no typing needed.
       </p>
 
       <div className="relative my-12">
-        {isRecording && (
+        {isListening && (
           <>
             <span className="absolute inset-0 rounded-full bg-primary-400/40 animate-ping" />
             <span className="absolute -inset-4 rounded-full bg-primary-400/20 animate-pulseSoft" />
@@ -65,15 +117,15 @@ export default function VoiceAssistant() {
         <button
           onClick={handleRecordToggle}
           disabled={isProcessing}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
+          aria-label={isListening ? "Stop recording" : "Start recording"}
           className={cn(
             "relative h-28 w-28 rounded-full flex items-center justify-center shadow-lift transition-all duration-300",
-            isRecording
+            isListening
               ? "bg-red-500 scale-105"
               : "bg-primary-700 hover:bg-primary-800",
           )}
         >
-          {isRecording ? (
+          {isListening ? (
             <Square className="h-9 w-9 text-white" />
           ) : (
             <Mic className="h-10 w-10 text-white" />
@@ -84,18 +136,22 @@ export default function VoiceAssistant() {
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-8">
         {isProcessing
           ? "Processing your question..."
-          : isRecording
+          : isListening
             ? "Listening... tap to stop"
             : "Tap to start speaking"}
       </p>
 
       <div className="w-full space-y-4">
-        {transcript && (
+        {(transcript || isListening) && (
           <div className="card p-5 text-left animate-fadeUp">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-              Transcript
+              {isListening ? "Listening..." : "Transcript"}
             </p>
-            <p className="text-sm text-ink dark:text-gray-100">{transcript}</p>
+            <p className="text-sm text-ink dark:text-gray-100">
+              {transcript || (
+                <span className="text-gray-400 italic">Say something...</span>
+              )}
+            </p>
           </div>
         )}
 
@@ -108,7 +164,19 @@ export default function VoiceAssistant() {
           </div>
         )}
 
-        {response && !isProcessing && (
+        {error && !isProcessing && (
+          <div className="card p-5 text-left border-red-100 dark:border-red-900/40">
+            <p className="text-sm text-red-500">{error}</p>
+            <button
+              onClick={handleRecordToggle}
+              className="text-xs font-medium text-primary-700 dark:text-secondary-400 hover:underline mt-2"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {response && !isProcessing && !error && (
           <div className="card p-5 text-left animate-fadeUp">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
