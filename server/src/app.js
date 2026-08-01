@@ -24,14 +24,32 @@ import {
 
 const app = express();
 
-app.use(helmet());
+const allowedOriginsFromEnv = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((url) => url.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5000",
+  "https://agri-ai-advisory-system.vercel.app",
+];
+
 app.use(
   cors({
-    origin: [
-      config.cors.origin,
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      if (
+        allowedOriginsFromEnv.includes(normalizedOrigin) ||
+        defaultAllowedOrigins.includes(normalizedOrigin) ||
+        /\.vercel\.app$/.test(new URL(origin).hostname)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS policy error: Origin ${origin} not allowed`));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
