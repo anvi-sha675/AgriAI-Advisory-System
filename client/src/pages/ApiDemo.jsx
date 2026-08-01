@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function ApiDemo() {
   const [queries, setQueries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/queries")
+    fetch(`${API_BASE}/queries`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch data");
