@@ -2,10 +2,21 @@
 
 A full-stack AI-powered agricultural advisory platform that gives Indian farmers instant access to expert-level crop guidance — through text chat, voice, and photo-based disease detection — in one place.
 
+## 🔗 Links
+
+| | |
+|---|---|
+| **Live Demo** | `https://agri-ai-advisory-system.vercel.app/` |
+| **GitHub Repo** | `https://github.com/anvi-sha675/AgriAI-Advisory-System` |
+| **LinkedIn** | `https://www.linkedin.com/in/anvesha224/` |
+
+
 ---
 
 ## 📋 Table of Contents
 
+- [Links](#-links)
+- [Screenshots](#-screenshots)
 - [Problem Statement](#-problem-statement)
 - [Solution](#-solution)
 - [Key Features](#-key-features)
@@ -20,6 +31,16 @@ A full-stack AI-powered agricultural advisory platform that gives Indian farmers
 - [Deployment](#-deployment)
 - [API Overview](#-api-overview)
 - [Known Limitations](#-known-limitations)
+
+---
+
+## 📸 Screenshots
+
+| | |
+|---|---|
+| **Dashboard** | ![Dashboard](docs/screenshots/dashboard.png) |
+| **AI Advisory Chat** | ![Chat](docs/screenshots/chat.png) |
+| **Disease Detection** | ![Disease Detection](docs/screenshots/disease-detection.png) |
 
 ---
 
